@@ -1,12 +1,19 @@
 {
-  "name": "pinetree-scaffold",
+  "name": "pinetree",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "pipeline:split": "tsx scripts/01-split-scholars.ts",
+    "pipeline:embed": "tsx scripts/02-generate-embeddings.ts",
+    "pipeline:reduce": "tsx scripts/03-reduce-dimensions.ts",
+    "pipeline:cluster": "tsx scripts/04-cluster.ts",
+    "pipeline:bundle": "tsx scripts/05-bundle.ts",
+    "pipeline": "pnpm pipeline:split && pnpm pipeline:embed && pnpm pipeline:reduce && pnpm pipeline:cluster && pnpm pipeline:bundle",
+    "deploy": "next build && touch out/.nojekyll && gh-pages -d out -t true"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
