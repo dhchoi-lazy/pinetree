@@ -174,7 +174,41 @@ function splitIntoChunks(
     });
   }
 
-  return chunks;
+  // Sub-split large chunks (> 8000 chars) at paragraph boundaries
+  const MAX_CHUNK = 8000;
+  const finalChunks: typeof chunks = [];
+  for (const chunk of chunks) {
+    if (chunk.body.length <= MAX_CHUNK) {
+      finalChunks.push(chunk);
+      continue;
+    }
+    // Split at double-newline or 附錄 markers
+    const parts = chunk.body.split(/\n(?=附錄|百家謹案|梓材謹案|雲濠案|祖望謹案)/);
+    let current = "";
+    let partIdx = 0;
+    for (const part of parts) {
+      if (current.length + part.length > MAX_CHUNK && current.length > 0) {
+        finalChunks.push({
+          header: chunk.header,
+          section: chunk.section,
+          body: current,
+        });
+        partIdx++;
+        current = part;
+      } else {
+        current += (current ? "\n" : "") + part;
+      }
+    }
+    if (current) {
+      finalChunks.push({
+        header: chunk.header,
+        section: chunk.section,
+        body: current,
+      });
+    }
+  }
+
+  return finalChunks;
 }
 
 // ---------------------------------------------------------------------------
