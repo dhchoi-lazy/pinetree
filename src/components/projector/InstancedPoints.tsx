@@ -21,6 +21,21 @@ interface InstancedPointsProps {
 const POINT_SIZE = 8;
 const LERP_SPEED = 4;
 
+function createCircleTexture(): THREE.Texture {
+  const size = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffffff";
+  ctx.fill();
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
+
 export function InstancedPoints({
   scholars,
   xueanGroups,
@@ -36,6 +51,8 @@ export function InstancedPoints({
   const raycaster = useRef(new THREE.Raycaster());
   const pointer = useRef(new THREE.Vector2());
   const { camera, gl } = useThree();
+
+  const circleTexture = useMemo(() => createCircleTexture(), []);
 
   const colorMap = useMemo(() => {
     const map = new Map<string, THREE.Color>();
@@ -228,6 +245,8 @@ export function InstancedPoints({
         sizeAttenuation={false}
         transparent
         opacity={1}
+        map={circleTexture}
+        alphaTest={0.5}
       />
     </points>
   );
