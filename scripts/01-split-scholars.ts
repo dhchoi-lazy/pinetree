@@ -5,7 +5,8 @@ import {
   mkdirSync,
   readdirSync,
 } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import { createGeminiClient } from "./lib/gemini";
 
 // ---------------------------------------------------------------------------
@@ -32,9 +33,6 @@ interface Scholar extends ScholarRaw {
 // Paths
 // ---------------------------------------------------------------------------
 
-import { fileURLToPath } from "url";
-import { dirname } from "path";
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -46,30 +44,35 @@ const OUTPUT_DIR = join(__dirname, "output");
 // Prompt
 // ---------------------------------------------------------------------------
 
-function buildPrompt(volumeText: string): string {
+function buildChunkPrompt(
+  xueanName: string,
+  sectionHeader: string,
+  chunkText: string
+): string {
   return `You are a classical Chinese text parser specializing in 宋元學案.
 
-Given a volume of text, extract each individual scholar entry. Scholar entries typically begin with a header line in the format: [官職/諡號][姓][字/號]先生[名] (e.g., "文昭胡安定先生瑗", "節孝徐仲車先生積").
+Extract each individual scholar entry from this section. Scholar entries typically begin with a header line in the format: [官職/諡號][姓][字/號]先生[名] (e.g., "文昭胡安定先生瑗", "節孝徐仲車先生積").
 
-Sections beginning with ◆ (e.g., "◆安定門人") indicate relationship groupings — use these as the "section" field.
-
-The 學案 name is stated in the volume header (first line), e.g., "安定學案" from "第001卷 卷一 安定學案".
+The 學案 name is: ${xueanName}
+The section (◆) is: ${sectionHeader}
 
 For each scholar, return a JSON object with these fields:
 - "name": Chinese name only (e.g., "胡瑗")
 - "namePinyin": Pinyin with tone marks removed, capitalized (e.g., "Hu Yuan")
 - "courtesy": Courtesy name / 字 (e.g., "翼之"), or "" if not found
 - "title": Posthumous/official title (e.g., "文昭"), or "" if not found
-- "xuean": The 學案 name from the volume header (e.g., "安定學案")
+- "xuean": "${xueanName}"
 - "xueanPinyin": Pinyin of the xuean name without "學案" suffix (e.g., "Anding")
-- "section": The ◆ section header this scholar appears under (e.g., "安定門人")
+- "section": "${sectionHeader}"
 - "text": The full text of this scholar's entry, with proper modern Chinese punctuation
+
+If this section has no individual scholar biography entries (e.g., only cross-references like 別為/別見, or only a preface/序錄), return an empty array [].
 
 Return ONLY a JSON array. No markdown fences, no explanation.
 
 ---
 
-${volumeText}`;
+${chunkText}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -80,13 +83,11 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Extract the 3-digit volume number from a filename like "001_第001卷_卷一.txt". */
 function volumeNumber(filename: string): number {
   const match = filename.match(/^(\d{3})_/);
   return match ? parseInt(match[1], 10) : -1;
 }
 
-/** Turn "Hu Yuan" into "hu-yuan" for use in IDs. */
 function pinyinSlug(pinyin: string): string {
   return pinyin
     .toLowerCase()
@@ -95,7 +96,6 @@ function pinyinSlug(pinyin: string): string {
     .replace(/\s+/g, "-");
 }
 
-/** Strip markdown code fences if present (safety net). */
 function stripCodeFences(text: string): string {
   let cleaned = text.trim();
   if (cleaned.startsWith("```")) {
@@ -104,17 +104,137 @@ function stripCodeFences(text: string): string {
   return cleaned.trim();
 }
 
+/** Extract xuean name from volume header, e.g., "安定學案" from "第001卷 卷一　安定學案黃氏原本、全氏修定" */
+function extractXueanName(headerLine: string): string {
+  const match = headerLine.match(/[　\s](.+學案)/);
+  if (match) {
+    return match[1].replace(/黃氏原本.*$/, "").replace(/全氏.*$/, "").trim();
+  }
+  return "";
+}
+
+/** Split a volume text into chunks at ◆ markers */
+function splitIntoChunks(
+  text: string
+): { header: string; section: string; body: string }[] {
+  const lines = text.split("\n");
+  const chunks: { header: string; section: string; body: string }[] = [];
+
+  // Find the first ◆ marker — everything before it is the header/preface
+  let firstMarker = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].startsWith("◆")) {
+      firstMarker = i;
+      break;
+    }
+  }
+
+  if (firstMarker === -1) {
+    // No ◆ markers — treat entire text as one chunk
+    chunks.push({
+      header: lines[0] ?? "",
+      section: "",
+      body: text,
+    });
+    return chunks;
+  }
+
+  // Split at each ◆ marker
+  let currentSection = "";
+  let currentLines: string[] = [];
+
+  for (let i = firstMarker; i < lines.length; i++) {
+    if (lines[i].startsWith("◆")) {
+      // Save previous chunk if it has content
+      if (currentSection && currentLines.length > 0) {
+        chunks.push({
+          header: lines[0] ?? "",
+          section: currentSection,
+          body: currentLines.join("\n"),
+        });
+      }
+      currentSection = lines[i].replace("◆", "").trim();
+      currentLines = [];
+    } else {
+      currentLines.push(lines[i]);
+    }
+  }
+
+  // Save last chunk
+  if (currentSection && currentLines.length > 0) {
+    chunks.push({
+      header: lines[0] ?? "",
+      section: currentSection,
+      body: currentLines.join("\n"),
+    });
+  }
+
+  return chunks;
+}
+
+// ---------------------------------------------------------------------------
+// API call with retry
+// ---------------------------------------------------------------------------
+
+const MAX_RETRIES = 3;
+
+async function callGemini(
+  client: ReturnType<typeof createGeminiClient>,
+  prompt: string,
+  label: string
+): Promise<ScholarRaw[]> {
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      if (attempt > 1) {
+        const backoff = attempt * 3000;
+        console.log(`    ↻ Retry ${attempt}/${MAX_RETRIES} after ${backoff}ms...`);
+        await sleep(backoff);
+      }
+
+      const response = await client.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          temperature: 0.1,
+          maxOutputTokens: 16384,
+          httpOptions: { timeout: 120_000 },
+        },
+      });
+
+      const raw = response.text ?? "";
+      const cleaned = stripCodeFences(raw);
+
+      const parsed = JSON.parse(cleaned);
+      if (!Array.isArray(parsed)) {
+        console.error(`    ✗ ${label}: Response is not an array`);
+        return [];
+      }
+      return parsed;
+    } catch (err: any) {
+      const msg = err?.message ?? String(err);
+      if (msg.includes("JSON")) {
+        console.error(`    ✗ ${label}: JSON parse error on attempt ${attempt}`);
+      } else {
+        console.error(`    ✗ ${label}: Attempt ${attempt} failed: ${msg.substring(0, 100)}`);
+      }
+      if (attempt === MAX_RETRIES) {
+        console.error(`    ✗ ${label}: All retries exhausted`);
+        return [];
+      }
+    }
+  }
+  return [];
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
 async function main() {
-  // Ensure output directory exists
   if (!existsSync(OUTPUT_DIR)) {
     mkdirSync(OUTPUT_DIR, { recursive: true });
   }
 
-  // Discover volume files, excluding volume 000 (卷首 — front matter)
   const allFiles = readdirSync(DATA_DIR)
     .filter((f) => f.endsWith(".txt"))
     .sort();
@@ -126,14 +246,12 @@ async function main() {
 
   const client = createGeminiClient();
 
-  // Process each volume sequentially
   for (let i = 0; i < volumeFiles.length; i++) {
     const filename = volumeFiles[i];
     const volNum = volumeNumber(filename);
     const volLabel = String(volNum).padStart(3, "0");
     const intermediateFile = join(OUTPUT_DIR, `scholars-v${volLabel}.json`);
 
-    // Skip if intermediate result already exists (allows resuming)
     if (existsSync(intermediateFile)) {
       console.log(
         `[${i + 1}/${volumeFiles.length}] Volume ${volLabel} — cached, skipping`
@@ -146,79 +264,55 @@ async function main() {
     );
 
     const text = readFileSync(join(DATA_DIR, filename), "utf-8");
-    const prompt = buildPrompt(text);
+    const xueanName = extractXueanName(text.split("\n")[0] ?? "");
+    const chunks = splitIntoChunks(text);
 
-    let scholars: ScholarRaw[] | null = null;
-    const MAX_RETRIES = 3;
+    console.log(`  Split into ${chunks.length} section(s), xuean: ${xueanName}`);
 
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        if (attempt > 1) {
-          const backoff = attempt * 3000;
-          console.log(`  ↻ Retry ${attempt}/${MAX_RETRIES} after ${backoff}ms...`);
-          await sleep(backoff);
-        }
+    const volumeScholars: ScholarRaw[] = [];
 
-        const response = await client.models.generateContent({
-          model: "gemini-3-flash-preview",
-          contents: prompt,
-          config: {
-            temperature: 0.1,
-            maxOutputTokens: 65536,
-            httpOptions: { timeout: 300_000 },
-          },
-        });
+    for (let c = 0; c < chunks.length; c++) {
+      const chunk = chunks[c];
+      const sectionLabel = chunk.section || "(main)";
+      const chunkSize = chunk.body.length;
 
-        const raw = response.text ?? "";
-        const cleaned = stripCodeFences(raw);
+      // Skip very small chunks (likely just cross-references)
+      if (chunkSize < 50) {
+        console.log(`  [${c + 1}/${chunks.length}] ${sectionLabel} — too small (${chunkSize} chars), skipping`);
+        continue;
+      }
 
-        try {
-          scholars = JSON.parse(cleaned);
-        } catch {
-          console.error(
-            `  ✗ Failed to parse JSON for volume ${volLabel}. Saving raw response.`
-          );
-          writeFileSync(
-            join(OUTPUT_DIR, `scholars-v${volLabel}.raw.txt`),
-            raw,
-            "utf-8"
-          );
-          scholars = [];
-        }
+      console.log(`  [${c + 1}/${chunks.length}] ${sectionLabel} (${chunkSize} chars)...`);
 
-        if (!Array.isArray(scholars)) {
-          console.error(
-            `  ✗ Response is not an array for volume ${volLabel}. Got: ${typeof scholars}`
-          );
-          scholars = [];
-        }
+      const prompt = buildChunkPrompt(xueanName, sectionLabel, chunk.body);
+      const scholars = await callGemini(client, prompt, `v${volLabel}/${sectionLabel}`);
 
-        break; // success — exit retry loop
-      } catch (err: any) {
-        console.error(`  ✗ Attempt ${attempt} failed for volume ${volLabel}: ${err?.message ?? err}`);
-        if (attempt === MAX_RETRIES) {
-          console.error(`  ✗ All ${MAX_RETRIES} attempts failed for volume ${volLabel}. Skipping (will retry on next run).`);
-          // Do NOT write file — leave it missing so next run retries
-        }
+      if (scholars.length > 0) {
+        console.log(`    → ${scholars.length} scholar(s)`);
+        volumeScholars.push(...scholars);
+      }
+
+      // Small delay between chunks
+      if (c < chunks.length - 1) {
+        await sleep(500);
       }
     }
 
-    if (scholars !== null && scholars.length > 0) {
-      console.log(`  → Extracted ${scholars.length} scholar(s)`);
-      writeFileSync(intermediateFile, JSON.stringify(scholars, null, 2), "utf-8");
-    } else if (scholars !== null) {
-      console.log(`  → 0 scholars extracted (empty result)`);
-      // Don't cache empty results — leave for retry
+    if (volumeScholars.length > 0) {
+      console.log(`  Total: ${volumeScholars.length} scholar(s) for volume ${volLabel}`);
+      writeFileSync(intermediateFile, JSON.stringify(volumeScholars, null, 2), "utf-8");
+    } else {
+      console.log(`  ⚠ No scholars extracted for volume ${volLabel}`);
     }
 
-    // Respect rate limits
+    // Rate limit between volumes
     if (i < volumeFiles.length - 1) {
       await sleep(1000);
     }
   }
 
   // -------------------------------------------------------------------------
-  // Merge all intermediate files into scholars.json
+  // Merge
   // -------------------------------------------------------------------------
 
   console.log("\nMerging intermediate files...");
