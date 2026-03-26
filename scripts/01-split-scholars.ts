@@ -7,7 +7,7 @@ import {
 } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { createGeminiClient } from "./lib/gemini";
+import OpenAI from "openai";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -182,9 +182,12 @@ function splitIntoChunks(
 // ---------------------------------------------------------------------------
 
 const MAX_RETRIES = 3;
+const LITELLM_URL = "https://llm.dhchoi.net/v1";
+const LITELLM_KEY = process.env.LITELLM_MASTER_KEY || "sk-c36501d98c9a430e1598223c3d2e6b415afa6df6331ed80dce60b42728c61ae4";
+const MODEL = "gemini-3-flash";
 
-async function callGemini(
-  client: ReturnType<typeof createGeminiClient>,
+async function callLLM(
+  client: OpenAI,
   prompt: string,
   label: string
 ): Promise<ScholarRaw[]> {
@@ -196,24 +199,20 @@ async function callGemini(
         await sleep(backoff);
       }
 
-      const response = await client.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-        config: {
-          temperature: 0.1,
-          maxOutputTokens: 65536,
-          httpOptions: { timeout: 300_000 },
-        },
+      const response = await client.chat.completions.create({
+        model: MODEL,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.1,
+        max_tokens: 65536,
       });
 
-      const raw = response.text ?? "";
+      const raw = response.choices[0]?.message?.content ?? "";
       const cleaned = stripCodeFences(raw);
 
       let parsed: unknown;
       try {
         parsed = JSON.parse(cleaned);
       } catch {
-        // Try to salvage: find the outermost [ ... ] in the response
         const bracketStart = cleaned.indexOf("[");
         const bracketEnd = cleaned.lastIndexOf("]");
         if (bracketStart !== -1 && bracketEnd > bracketStart) {
@@ -264,7 +263,7 @@ async function main() {
     `Found ${allFiles.length} total files, processing ${volumeFiles.length} volumes (skipping 000)`
   );
 
-  const client = createGeminiClient();
+  const client = new OpenAI({ baseURL: LITELLM_URL, apiKey: LITELLM_KEY });
 
   for (let i = 0; i < volumeFiles.length; i++) {
     const filename = volumeFiles[i];
@@ -307,7 +306,7 @@ async function main() {
       // If chunk is very large, process as-is but with a note
       // The 16384 maxOutputTokens and 120s timeout should handle up to ~20KB
       const prompt = buildChunkPrompt(xueanName, sectionLabel, chunk.body);
-      const scholars = await callGemini(client, prompt, `v${volLabel}/${sectionLabel}`);
+      const scholars = await callLLM(client, prompt,`v${volLabel}/${sectionLabel}`);
 
       if (scholars.length > 0) {
         console.log(`    → ${scholars.length} scholar(s)`);
