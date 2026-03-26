@@ -148,48 +148,67 @@ async function main() {
     const text = readFileSync(join(DATA_DIR, filename), "utf-8");
     const prompt = buildPrompt(text);
 
-    try {
-      const response = await client.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-        config: {
-          temperature: 0.1,
-          maxOutputTokens: 65536,
-        },
-      });
+    let scholars: ScholarRaw[] | null = null;
+    const MAX_RETRIES = 3;
 
-      const raw = response.text ?? "";
-      const cleaned = stripCodeFences(raw);
-
-      let scholars: ScholarRaw[];
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
-        scholars = JSON.parse(cleaned);
-      } catch {
-        console.error(
-          `  ✗ Failed to parse JSON for volume ${volLabel}. Saving raw response.`
-        );
-        writeFileSync(
-          join(OUTPUT_DIR, `scholars-v${volLabel}.raw.txt`),
-          raw,
-          "utf-8"
-        );
-        scholars = [];
-      }
+        if (attempt > 1) {
+          const backoff = attempt * 3000;
+          console.log(`  ↻ Retry ${attempt}/${MAX_RETRIES} after ${backoff}ms...`);
+          await sleep(backoff);
+        }
 
-      if (!Array.isArray(scholars)) {
-        console.error(
-          `  ✗ Response is not an array for volume ${volLabel}. Got: ${typeof scholars}`
-        );
-        scholars = [];
-      }
+        const response = await client.models.generateContent({
+          model: "gemini-3-flash-preview",
+          contents: prompt,
+          config: {
+            temperature: 0.1,
+            maxOutputTokens: 65536,
+            httpOptions: { timeout: 300_000 },
+          },
+        });
 
+        const raw = response.text ?? "";
+        const cleaned = stripCodeFences(raw);
+
+        try {
+          scholars = JSON.parse(cleaned);
+        } catch {
+          console.error(
+            `  ✗ Failed to parse JSON for volume ${volLabel}. Saving raw response.`
+          );
+          writeFileSync(
+            join(OUTPUT_DIR, `scholars-v${volLabel}.raw.txt`),
+            raw,
+            "utf-8"
+          );
+          scholars = [];
+        }
+
+        if (!Array.isArray(scholars)) {
+          console.error(
+            `  ✗ Response is not an array for volume ${volLabel}. Got: ${typeof scholars}`
+          );
+          scholars = [];
+        }
+
+        break; // success — exit retry loop
+      } catch (err: any) {
+        console.error(`  ✗ Attempt ${attempt} failed for volume ${volLabel}: ${err?.message ?? err}`);
+        if (attempt === MAX_RETRIES) {
+          console.error(`  ✗ All ${MAX_RETRIES} attempts failed for volume ${volLabel}. Skipping (will retry on next run).`);
+          // Do NOT write file — leave it missing so next run retries
+        }
+      }
+    }
+
+    if (scholars !== null && scholars.length > 0) {
       console.log(`  → Extracted ${scholars.length} scholar(s)`);
-
       writeFileSync(intermediateFile, JSON.stringify(scholars, null, 2), "utf-8");
-    } catch (err) {
-      console.error(`  ✗ API error for volume ${volLabel}:`, err);
-      // Write empty array so we can inspect and re-run later
-      writeFileSync(intermediateFile, "[]", "utf-8");
+    } else if (scholars !== null) {
+      console.log(`  → 0 scholars extracted (empty result)`);
+      // Don't cache empty results — leave for retry
     }
 
     // Respect rate limits
