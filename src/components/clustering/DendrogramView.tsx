@@ -78,7 +78,7 @@ export function DendrogramView({
     <svg
       ref={svgRef}
       className="h-full w-full"
-      style={{ background: "#f8f9fa" }}
+      style={{ background: "#0a0a0f" }}
     >
       <g ref={gRef} />
     </svg>

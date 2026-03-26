@@ -125,11 +125,11 @@ export function renderDendrogram(params: {
     .join("path")
     .attr("d", (d) => elbowLink(d.source as PointNode, d.target as PointNode))
     .attr("fill", "none")
-    .attr("stroke", "#aaa")
+    .attr("stroke", "#334155")
     .attr("stroke-width", 1.2)
     .attr("opacity", (d) => {
       const targetVisible = subtreeHasVisible(d.target as PointNode);
-      return targetVisible ? 0.6 : 0.15;
+      return targetVisible ? 0.8 : 0.15;
     });
 
   // --- Internal nodes ---
@@ -141,7 +141,7 @@ export function renderDendrogram(params: {
     .attr("cx", (d) => d.x)
     .attr("cy", (d) => d.y)
     .attr("r", 2)
-    .attr("fill", "#999")
+    .attr("fill", "#475569")
     .attr("opacity", (d) => (subtreeHasVisible(d) ? 0.5 : 0.15));
 
   // --- Leaf nodes ---
@@ -171,7 +171,7 @@ export function renderDendrogram(params: {
     })
     .attr("stroke", (d) => {
       const id = d.data.id;
-      return id === selectedId ? "#fff" : "none";
+      return id === selectedId ? "#f1f5f9" : "none";
     })
     .attr("stroke-width", (d) => {
       const id = d.data.id;
@@ -186,7 +186,7 @@ export function renderDendrogram(params: {
     .attr("text-anchor", "start")
     .attr("transform", `rotate(45)`)
     .attr("font-size", "11px")
-    .attr("fill", "#555")
+    .attr("fill", "#94a3b8")
     .text((d) => {
       const id = d.data.id;
       if (!id) return "";
@@ -205,25 +205,36 @@ export function renderDendrogram(params: {
     .on("mouseenter", function (_event, d) {
       const ancestors = getAncestors(d);
 
-      // Highlight ancestor links
-      linksGroup.selectAll("path").attr("stroke", (linkData) => {
-        const link = linkData as { source: PointNode; target: PointNode };
-        if (ancestors.has(link.source) && ancestors.has(link.target)) {
-          return "#fff";
-        }
-        return "#555";
-      });
+      // Highlight ancestor links with bright cyan
+      linksGroup.selectAll("path")
+        .attr("stroke", (linkData) => {
+          const link = linkData as { source: PointNode; target: PointNode };
+          if (ancestors.has(link.source) && ancestors.has(link.target)) {
+            return "#38bdf8";
+          }
+          return "#334155";
+        })
+        .attr("stroke-width", (linkData) => {
+          const link = linkData as { source: PointNode; target: PointNode };
+          if (ancestors.has(link.source) && ancestors.has(link.target)) {
+            return 2.5;
+          }
+          return 1.2;
+        });
 
       // Highlight label
-      select(this).select("text").attr("fill", "#fff").attr("font-weight", "bold");
+      select(this).select("text").attr("fill", "#e2e8f0").attr("font-weight", "bold");
+      select(this).select("circle").attr("r", LEAF_RADIUS * 1.4);
     })
     .on("mouseleave", function () {
       // Reset links
       linksGroup
         .selectAll("path")
-        .attr("stroke", "#aaa");
+        .attr("stroke", "#334155")
+        .attr("stroke-width", 1.2);
 
       // Reset label
-      select(this).select("text").attr("fill", "#ccc").attr("font-weight", "normal");
+      select(this).select("text").attr("fill", "#94a3b8").attr("font-weight", "normal");
+      select(this).select("circle").attr("r", LEAF_RADIUS);
     });
 }
