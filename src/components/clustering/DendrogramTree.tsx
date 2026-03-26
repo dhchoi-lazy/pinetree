@@ -5,13 +5,13 @@ import type { DendrogramNode, Scholar, XueanGroup } from "@/types";
 
 const LEAF_RADIUS = 4;
 const LABEL_OFFSET = 8;
-const MARGIN = { top: 20, right: 160, bottom: 20, left: 40 };
+const MARGIN = { top: 40, right: 20, bottom: 160, left: 20 };
 
 type PointNode = HierarchyPointNode<DendrogramNode>;
 
 function elbowLink(source: PointNode, target: PointNode): string {
-  const mx = (source.y + target.y) / 2;
-  return `M${source.y},${source.x} C${mx},${source.x} ${mx},${target.x} ${target.y},${target.x}`;
+  const my = (source.y + target.y) / 2;
+  return `M${source.x},${source.y} C${source.x},${my} ${target.x},${my} ${target.x},${target.y}`;
 }
 
 function getAncestors(node: PointNode): Set<PointNode> {
@@ -77,14 +77,14 @@ export function renderDendrogram(params: {
   const root = hierarchy<DendrogramNode>(dendrogram, (d) => d.children ?? null);
 
   const leafCount = root.leaves().length;
-  const dynamicHeight = Math.max(height, leafCount * 20);
+  const dynamicWidth = Math.max(width, leafCount * 24);
 
-  const layoutWidth = width - MARGIN.left - MARGIN.right;
-  const layoutHeight = dynamicHeight - MARGIN.top - MARGIN.bottom;
+  const layoutWidth = dynamicWidth - MARGIN.left - MARGIN.right;
+  const layoutHeight = height - MARGIN.top - MARGIN.bottom;
 
   const clusterLayout = cluster<DendrogramNode>().size([
-    layoutHeight,
     layoutWidth,
+    layoutHeight,
   ]);
   const layoutRoot = clusterLayout(root);
 
@@ -125,7 +125,7 @@ export function renderDendrogram(params: {
     .join("path")
     .attr("d", (d) => elbowLink(d.source as PointNode, d.target as PointNode))
     .attr("fill", "none")
-    .attr("stroke", "#555")
+    .attr("stroke", "#aaa")
     .attr("stroke-width", 1.2)
     .attr("opacity", (d) => {
       const targetVisible = subtreeHasVisible(d.target as PointNode);
@@ -138,10 +138,10 @@ export function renderDendrogram(params: {
     .selectAll("circle")
     .data(allNodes.filter((n) => n.children && n.children.length > 0))
     .join("circle")
-    .attr("cx", (d) => d.y)
-    .attr("cy", (d) => d.x)
+    .attr("cx", (d) => d.x)
+    .attr("cy", (d) => d.y)
     .attr("r", 2)
-    .attr("fill", "#666")
+    .attr("fill", "#999")
     .attr("opacity", (d) => (subtreeHasVisible(d) ? 0.5 : 0.15));
 
   // --- Leaf nodes ---
@@ -150,7 +150,7 @@ export function renderDendrogram(params: {
     .selectAll<SVGGElement, PointNode>("g")
     .data(leaves)
     .join("g")
-    .attr("transform", (d) => `translate(${d.y},${d.x})`)
+    .attr("transform", (d) => `translate(${d.x},${d.y})`)
     .attr("cursor", "pointer")
     .attr("opacity", (d) => {
       const id = d.data.id;
@@ -181,10 +181,12 @@ export function renderDendrogram(params: {
   // Leaf labels
   leafGroups
     .append("text")
-    .attr("x", LABEL_OFFSET)
-    .attr("dy", "0.35em")
+    .attr("x", 0)
+    .attr("y", LABEL_OFFSET)
+    .attr("text-anchor", "start")
+    .attr("transform", `rotate(45)`)
     .attr("font-size", "11px")
-    .attr("fill", "#ccc")
+    .attr("fill", "#555")
     .text((d) => {
       const id = d.data.id;
       if (!id) return "";
@@ -219,7 +221,7 @@ export function renderDendrogram(params: {
       // Reset links
       linksGroup
         .selectAll("path")
-        .attr("stroke", "#555");
+        .attr("stroke", "#aaa");
 
       // Reset label
       select(this).select("text").attr("fill", "#ccc").attr("font-weight", "normal");

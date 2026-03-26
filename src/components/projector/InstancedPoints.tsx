@@ -95,15 +95,12 @@ export function InstancedPoints({
       tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
       mesh.setMatrixAt(i, tempMatrix);
 
-      // Color with opacity baked into brightness
+      // Color — full brightness for visible, dimmed for hidden
       const hex = colorMap.get(scholar.xueanId) ?? "#888888";
       tempColor.set(hex);
 
       if (isHidden) {
-        // Dim filtered-out points
-        tempColor.multiplyScalar(0.15);
-      } else if (!isSelected && !isHovered) {
-        tempColor.multiplyScalar(0.8);
+        tempColor.lerp(new THREE.Color("#1a1a2e"), 0.85);
       }
 
       mesh.setColorAt(i, tempColor);
@@ -163,13 +160,7 @@ export function InstancedPoints({
       onPointerOut={handlePointerOut}
       onClick={handleClick}
     >
-      <meshStandardMaterial
-        vertexColors
-        transparent
-        opacity={1}
-        roughness={0.6}
-        metalness={0.1}
-      />
+      <meshBasicMaterial vertexColors />
     </instancedMesh>
   );
 }
