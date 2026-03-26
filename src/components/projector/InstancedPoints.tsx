@@ -60,6 +60,10 @@ export function InstancedPoints({
   }, [scholars, algorithm]);
 
   const geometry = useMemo(() => new THREE.SphereGeometry(BASE_SIZE, 16, 12), []);
+  const material = useMemo(
+    () => new THREE.MeshBasicMaterial({ vertexColors: true }),
+    []
+  );
   const dimColor = useMemo(() => new THREE.Color("#1a1a2e"), []);
 
   // Initialize instance colors on mount / when scholars change
@@ -170,12 +174,10 @@ export function InstancedPoints({
   return (
     <instancedMesh
       ref={meshRef}
-      args={[geometry, undefined, scholars.length]}
+      args={[geometry, material, scholars.length]}
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
       onClick={handleClick}
-    >
-      <meshBasicMaterial vertexColors />
-    </instancedMesh>
+    />
   );
 }
