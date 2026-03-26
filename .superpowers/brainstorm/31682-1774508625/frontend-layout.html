@@ -1,0 +1,97 @@
+<h2>Frontend Layout</h2>
+<p class="subtitle">Which layout feels right for the embedding projector?</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 16px; background: #1a1a2e;">
+      <div style="display: flex; height: 200px; gap: 0; font-family: monospace; font-size: 11px; color: #aaa;">
+        <!-- Left: 3D Canvas -->
+        <div style="flex: 1; border: 1px solid #333; border-radius: 4px 0 0 4px; position: relative; background: #0d0d1a; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; top: 8px; left: 8px; font-size: 10px; color: #666;">3D Canvas</div>
+          <!-- Scatter dots -->
+          <svg width="160" height="140" viewBox="0 0 160 140">
+            <circle cx="30" cy="40" r="4" fill="#ff6b6b" opacity="0.8"/>
+            <circle cx="45" cy="55" r="4" fill="#ff6b6b" opacity="0.8"/>
+            <circle cx="35" cy="50" r="4" fill="#ff6b6b" opacity="0.8"/>
+            <circle cx="80" cy="90" r="4" fill="#4ecdc4" opacity="0.8"/>
+            <circle cx="95" cy="85" r="4" fill="#4ecdc4" opacity="0.8"/>
+            <circle cx="85" cy="100" r="4" fill="#4ecdc4" opacity="0.8"/>
+            <circle cx="120" cy="30" r="4" fill="#ffe66d" opacity="0.8"/>
+            <circle cx="130" cy="45" r="4" fill="#ffe66d" opacity="0.8"/>
+            <circle cx="140" cy="35" r="4" fill="#ffe66d" opacity="0.8"/>
+            <circle cx="60" cy="120" r="4" fill="#a29bfe" opacity="0.8"/>
+            <circle cx="70" cy="110" r="4" fill="#a29bfe" opacity="0.8"/>
+          </svg>
+        </div>
+        <!-- Right: Side Panel -->
+        <div style="width: 220px; border: 1px solid #333; border-left: none; border-radius: 0 4px 4px 0; padding: 8px; background: #111; overflow: hidden;">
+          <div style="font-size: 10px; color: #888; margin-bottom: 6px;">Scholar Detail</div>
+          <div style="background: #1a1a2e; border-radius: 3px; padding: 6px; margin-bottom: 4px;">
+            <div style="color: #fff; font-size: 11px;">胡瑗 (Hu Yuan)</div>
+            <div style="color: #ff6b6b; font-size: 9px;">安定學案</div>
+          </div>
+          <div style="font-size: 9px; color: #666; line-height: 1.4;">
+            胡瑗，字翼之，泰州如人。七歲善屬文，十三通五經...
+          </div>
+          <div style="margin-top: 8px; border-top: 1px solid #333; padding-top: 6px;">
+            <div style="font-size: 9px; color: #888;">學案 Filter ▼</div>
+            <div style="display: flex; gap: 3px; margin-top: 4px; flex-wrap: wrap;">
+              <span style="font-size: 8px; background: #ff6b6b33; color: #ff6b6b; padding: 1px 4px; border-radius: 2px;">安定</span>
+              <span style="font-size: 8px; background: #4ecdc433; color: #4ecdc4; padding: 1px 4px; border-radius: 2px;">泰山</span>
+              <span style="font-size: 8px; background: #ffe66d33; color: #ffe66d; padding: 1px 4px; border-radius: 2px;">百源</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A: Canvas + Right Panel</h3>
+      <p>Full-width 3D canvas with collapsible right panel for scholar details and filters. Panel appears on point click.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 16px; background: #1a1a2e;">
+      <div style="display: flex; flex-direction: column; height: 200px; gap: 0; font-family: monospace; font-size: 11px; color: #aaa;">
+        <!-- Top: Toolbar -->
+        <div style="height: 32px; border: 1px solid #333; border-radius: 4px 4px 0 0; padding: 4px 8px; background: #111; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 10px; color: #fff;">Pinetree</span>
+          <div style="flex: 1;"></div>
+          <span style="font-size: 8px; background: #ff6b6b33; color: #ff6b6b; padding: 1px 4px; border-radius: 2px;">安定</span>
+          <span style="font-size: 8px; background: #4ecdc433; color: #4ecdc4; padding: 1px 4px; border-radius: 2px;">泰山</span>
+          <span style="font-size: 8px; color: #666;">Filter ▼</span>
+        </div>
+        <!-- Middle: Full Canvas -->
+        <div style="flex: 1; border: 1px solid #333; border-top: none; position: relative; background: #0d0d1a; display: flex; align-items: center; justify-content: center;">
+          <svg width="200" height="110" viewBox="0 0 200 110">
+            <circle cx="40" cy="30" r="4" fill="#ff6b6b" opacity="0.8"/>
+            <circle cx="55" cy="45" r="4" fill="#ff6b6b" opacity="0.8"/>
+            <circle cx="45" cy="40" r="4" fill="#ff6b6b" opacity="0.8"/>
+            <circle cx="100" cy="70" r="4" fill="#4ecdc4" opacity="0.8"/>
+            <circle cx="115" cy="65" r="4" fill="#4ecdc4" opacity="0.8"/>
+            <circle cx="105" cy="80" r="4" fill="#4ecdc4" opacity="0.8"/>
+            <circle cx="160" cy="25" r="4" fill="#ffe66d" opacity="0.8"/>
+            <circle cx="170" cy="40" r="4" fill="#ffe66d" opacity="0.8"/>
+            <circle cx="180" cy="30" r="4" fill="#ffe66d" opacity="0.8"/>
+            <circle cx="70" cy="95" r="4" fill="#a29bfe" opacity="0.8"/>
+            <circle cx="80" cy="85" r="4" fill="#a29bfe" opacity="0.8"/>
+          </svg>
+          <!-- Floating card overlay -->
+          <div style="position: absolute; bottom: 8px; left: 8px; right: 8px; background: #111; border: 1px solid #333; border-radius: 4px; padding: 6px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="color: #fff; font-size: 10px;">胡瑗 (Hu Yuan)</div>
+                <div style="color: #ff6b6b; font-size: 8px;">安定學案</div>
+              </div>
+              <span style="color: #666; font-size: 9px;">Expand ↗</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B: Full Canvas + Bottom Overlay</h3>
+      <p>Canvas takes full viewport. Toolbar on top with filters. Scholar detail appears as a floating card overlay at the bottom.</p>
+    </div>
+  </div>
+</div>
