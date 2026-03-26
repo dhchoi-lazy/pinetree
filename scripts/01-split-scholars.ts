@@ -150,7 +150,7 @@ async function main() {
 
     try {
       const response = await client.models.generateContent({
-        model: "gemini-3.1-pro-preview",
+        model: "gemini-3-flash",
         contents: prompt,
         config: {
           temperature: 0.1,
