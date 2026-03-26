@@ -1,0 +1,103 @@
+<h2>Interaction Design</h2>
+<p class="subtitle">How users explore the embedding space</p>
+
+<div class="section">
+  <h3>3D Canvas Interactions</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+    <div style="background: var(--bg-secondary); border-radius: 8px; padding: 16px;">
+      <div style="font-weight: 600; margin-bottom: 4px;">🖱️ Orbit</div>
+      <div style="font-size: 13px; color: var(--text-secondary);">Left-click drag to rotate the 3D view</div>
+    </div>
+    <div style="background: var(--bg-secondary); border-radius: 8px; padding: 16px;">
+      <div style="font-weight: 600; margin-bottom: 4px;">🔍 Zoom</div>
+      <div style="font-size: 13px; color: var(--text-secondary);">Scroll wheel to zoom in/out</div>
+    </div>
+    <div style="background: var(--bg-secondary); border-radius: 8px; padding: 16px;">
+      <div style="font-weight: 600; margin-bottom: 4px;">✋ Pan</div>
+      <div style="font-size: 13px; color: var(--text-secondary);">Right-click drag to pan the camera</div>
+    </div>
+    <div style="background: var(--bg-secondary); border-radius: 8px; padding: 16px;">
+      <div style="font-weight: 600; margin-bottom: 4px;">👆 Hover</div>
+      <div style="font-size: 13px; color: var(--text-secondary);">Hover a point → tooltip with scholar name + 學案</div>
+    </div>
+    <div style="background: var(--bg-secondary); border-radius: 8px; padding: 16px;">
+      <div style="font-weight: 600; margin-bottom: 4px;">🎯 Click</div>
+      <div style="font-size: 13px; color: var(--text-secondary);">Click a point → open detail in right panel</div>
+    </div>
+    <div style="background: var(--bg-secondary); border-radius: 8px; padding: 16px;">
+      <div style="font-weight: 600; margin-bottom: 4px;">🎨 Filter</div>
+      <div style="font-size: 13px; color: var(--text-secondary);">Toggle 學案 in panel → dim/hide unselected points</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Right Panel States</h3>
+  <div style="display: flex; gap: 12px; margin-top: 12px;">
+    <!-- Default state -->
+    <div style="flex: 1; background: var(--bg-secondary); border-radius: 8px; padding: 16px;">
+      <div class="label">Default (no selection)</div>
+      <div style="margin-top: 8px; font-size: 13px; border: 1px solid var(--border); border-radius: 6px; padding: 12px;">
+        <div style="font-weight: 600; margin-bottom: 8px;">Pinetree</div>
+        <div style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;">Embedding projector for 宋元學案</div>
+        <div style="border-top: 1px solid var(--border); padding-top: 8px;">
+          <div style="font-size: 11px; font-weight: 600; margin-bottom: 6px;">Filter by 學案</div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <div style="font-size: 11px; display: flex; align-items: center; gap: 6px;">
+              <span style="width: 10px; height: 10px; border-radius: 50%; background: #ff6b6b; display: inline-block;"></span>
+              安定學案 <span style="color: var(--text-secondary); margin-left: auto;">15</span>
+            </div>
+            <div style="font-size: 11px; display: flex; align-items: center; gap: 6px;">
+              <span style="width: 10px; height: 10px; border-radius: 50%; background: #4ecdc4; display: inline-block;"></span>
+              泰山學案 <span style="color: var(--text-secondary); margin-left: auto;">12</span>
+            </div>
+            <div style="font-size: 11px; display: flex; align-items: center; gap: 6px;">
+              <span style="width: 10px; height: 10px; border-radius: 50%; background: #ffe66d; display: inline-block;"></span>
+              百源學案 <span style="color: var(--text-secondary); margin-left: auto;">8</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Selected state -->
+    <div style="flex: 1; background: var(--bg-secondary); border-radius: 8px; padding: 16px;">
+      <div class="label">Scholar selected</div>
+      <div style="margin-top: 8px; font-size: 13px; border: 1px solid var(--border); border-radius: 6px; padding: 12px;">
+        <div style="font-size: 11px; color: var(--text-secondary); cursor: pointer;">← Back to filters</div>
+        <div style="margin-top: 8px;">
+          <div style="font-weight: 600;">胡瑗</div>
+          <div style="font-size: 11px; color: var(--text-secondary);">Courtesy name: 翼之 · Title: 文昭</div>
+          <div style="margin-top: 4px;">
+            <span style="font-size: 10px; background: #ff6b6b33; color: #ff6b6b; padding: 1px 6px; border-radius: 3px;">安定學案</span>
+            <span style="font-size: 10px; color: var(--text-secondary); margin-left: 4px;">Vol. 1</span>
+          </div>
+        </div>
+        <div style="margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; font-size: 11px; color: var(--text-secondary); line-height: 1.6;">
+          胡瑗，字翼之，泰州如人。七歲善屬文，十三通五經，即以聖賢自期許。鄰父見而異之，謂其父曰：「此子乃偉器，非常兒也！」...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Point Visual States</h3>
+  <div style="display: flex; gap: 20px; align-items: center; justify-content: center; margin-top: 12px; padding: 20px; background: var(--bg-secondary); border-radius: 8px;">
+    <div style="text-align: center;">
+      <svg width="40" height="40"><circle cx="20" cy="20" r="8" fill="#ff6b6b" opacity="0.8"/></svg>
+      <div style="font-size: 11px;">Default</div>
+    </div>
+    <div style="text-align: center;">
+      <svg width="40" height="40"><circle cx="20" cy="20" r="10" fill="#ff6b6b" opacity="1.0"/><circle cx="20" cy="20" r="12" fill="none" stroke="#fff" stroke-width="1" opacity="0.5"/></svg>
+      <div style="font-size: 11px;">Hovered</div>
+    </div>
+    <div style="text-align: center;">
+      <svg width="40" height="40"><circle cx="20" cy="20" r="11" fill="#ff6b6b" opacity="1.0"/><circle cx="20" cy="20" r="13" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.8"/></svg>
+      <div style="font-size: 11px;">Selected</div>
+    </div>
+    <div style="text-align: center;">
+      <svg width="40" height="40"><circle cx="20" cy="20" r="8" fill="#ff6b6b" opacity="0.15"/></svg>
+      <div style="font-size: 11px;">Filtered out</div>
+    </div>
+  </div>
+</div>
