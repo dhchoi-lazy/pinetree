@@ -1,5 +1,9 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 import { UMAP } from "umap-js";
 import { normalize3D } from "./lib/normalize";
 
@@ -26,7 +30,7 @@ interface PositionRecord {
 // Paths
 // ---------------------------------------------------------------------------
 
-const OUTPUT_DIR = join(import.meta.dirname, "output");
+const OUTPUT_DIR = join(__dirname, "output");
 const INPUT_PATH = join(OUTPUT_DIR, "embeddings.json");
 const OUTPUT_PATH = join(OUTPUT_DIR, "positions.json");
 

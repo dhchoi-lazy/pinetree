@@ -32,9 +32,15 @@ interface Scholar extends ScholarRaw {
 // Paths
 // ---------------------------------------------------------------------------
 
-const ROOT = join(import.meta.dirname, "..");
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const ROOT = join(__dirname, "..");
 const DATA_DIR = join(ROOT, "data");
-const OUTPUT_DIR = join(import.meta.dirname, "output");
+const OUTPUT_DIR = join(__dirname, "output");
 
 // ---------------------------------------------------------------------------
 // Prompt

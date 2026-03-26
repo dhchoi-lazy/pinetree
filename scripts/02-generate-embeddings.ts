@@ -1,6 +1,10 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import { createGeminiClient } from "./lib/gemini";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // ---------------------------------------------------------------------------
 // Types
@@ -35,7 +39,7 @@ const BASE_DELAY_MS = 1000;
 // Paths
 // ---------------------------------------------------------------------------
 
-const OUTPUT_DIR = join(import.meta.dirname, "output");
+const OUTPUT_DIR = join(__dirname, "output");
 const INPUT_PATH = join(OUTPUT_DIR, "scholars.json");
 const CHECKPOINT_PATH = join(OUTPUT_DIR, "embeddings-checkpoint.json");
 const OUTPUT_PATH = join(OUTPUT_DIR, "embeddings.json");

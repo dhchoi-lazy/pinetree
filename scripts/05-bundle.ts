@@ -1,5 +1,9 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // ---------------------------------------------------------------------------
 // Types
@@ -103,7 +107,7 @@ function toXueanId(xueanPinyin: string): string {
 // Paths
 // ---------------------------------------------------------------------------
 
-const SCRIPTS_DIR = import.meta.dirname;
+const SCRIPTS_DIR = __dirname;
 const OUTPUT_DIR = join(SCRIPTS_DIR, "output");
 const PROJECT_ROOT = join(SCRIPTS_DIR, "..");
 const DATASET_DIR = join(PROJECT_ROOT, "public", "data");

@@ -1,5 +1,9 @@
 import { readFileSync, writeFileSync, existsSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 import { agnes } from "ml-hclust";
 import { similarity } from "ml-distance";
 
@@ -22,7 +26,7 @@ interface DendrogramNode {
 // Paths
 // ---------------------------------------------------------------------------
 
-const OUTPUT_DIR = join(import.meta.dirname, "output");
+const OUTPUT_DIR = join(__dirname, "output");
 const EMBEDDINGS_PATH = join(OUTPUT_DIR, "embeddings.json");
 const OUTPUT_PATH = join(OUTPUT_DIR, "clustering.json");
 

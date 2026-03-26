@@ -60,10 +60,25 @@ export function InstancedPoints({
   }, [scholars, algorithm]);
 
   const geometry = useMemo(() => new THREE.SphereGeometry(BASE_SIZE, 16, 12), []);
+  const dimColor = useMemo(() => new THREE.Color("#1a1a2e"), []);
+
+  // Initialize instance colors on mount / when scholars change
+  const initRef = useRef(false);
 
   useFrame((_, delta) => {
     const mesh = meshRef.current;
     if (!mesh) return;
+
+    // Ensure instanceColor buffer exists by setting colors on first frame
+    if (!initRef.current) {
+      for (let i = 0; i < scholars.length; i++) {
+        const hex = colorMap.get(scholars[i].xueanId) ?? "#888888";
+        tempColor.set(hex);
+        mesh.setColorAt(i, tempColor);
+      }
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      initRef.current = true;
+    }
 
     if (!currentPositions.current) {
       currentPositions.current = new Float32Array(targetPositions);
@@ -100,7 +115,7 @@ export function InstancedPoints({
       tempColor.set(hex);
 
       if (isHidden) {
-        tempColor.lerp(new THREE.Color("#1a1a2e"), 0.85);
+        tempColor.lerp(dimColor, 0.85);
       }
 
       mesh.setColorAt(i, tempColor);
