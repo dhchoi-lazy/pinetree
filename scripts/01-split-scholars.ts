@@ -174,41 +174,7 @@ function splitIntoChunks(
     });
   }
 
-  // Sub-split large chunks (> 8000 chars) at paragraph boundaries
-  const MAX_CHUNK = 8000;
-  const finalChunks: typeof chunks = [];
-  for (const chunk of chunks) {
-    if (chunk.body.length <= MAX_CHUNK) {
-      finalChunks.push(chunk);
-      continue;
-    }
-    // Split at double-newline or 附錄 markers
-    const parts = chunk.body.split(/\n(?=附錄|百家謹案|梓材謹案|雲濠案|祖望謹案)/);
-    let current = "";
-    let partIdx = 0;
-    for (const part of parts) {
-      if (current.length + part.length > MAX_CHUNK && current.length > 0) {
-        finalChunks.push({
-          header: chunk.header,
-          section: chunk.section,
-          body: current,
-        });
-        partIdx++;
-        current = part;
-      } else {
-        current += (current ? "\n" : "") + part;
-      }
-    }
-    if (current) {
-      finalChunks.push({
-        header: chunk.header,
-        section: chunk.section,
-        body: current,
-      });
-    }
-  }
-
-  return finalChunks;
+  return chunks;
 }
 
 // ---------------------------------------------------------------------------
@@ -218,7 +184,7 @@ function splitIntoChunks(
 const MAX_RETRIES = 3;
 const LITELLM_URL = "https://llm.dhchoi.net/v1";
 const LITELLM_KEY = process.env.LITELLM_MASTER_KEY || "sk-c36501d98c9a430e1598223c3d2e6b415afa6df6331ed80dce60b42728c61ae4";
-const MODEL = "gemini-3-flash";
+const MODEL = "gpt-5.4";
 
 async function callLLM(
   client: OpenAI,
