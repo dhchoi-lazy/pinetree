@@ -105,11 +105,16 @@ function stripCodeFences(text: string): string {
 }
 
 /** Extract xuean name from volume header, e.g., "安定學案" from "第001卷 卷一　安定學案黃氏原本、全氏修定" */
-function extractXueanName(headerLine: string): string {
-  const match = headerLine.match(/[　\s](.+學案)/);
-  if (match) {
-    return match[1].replace(/黃氏原本.*$/, "").replace(/全氏.*$/, "").trim();
+function extractXueanName(text: string): string {
+  // Look for the 學案 line (usually line 3), e.g., "安定學案　黃宗羲原本　　黃百家纂輯"
+  const lines = text.split("\n").slice(0, 10);
+  for (const line of lines) {
+    const match = line.match(/^([^\s　]+學案)/);
+    if (match) return match[1];
   }
+  // Fallback: extract from header line
+  const headerMatch = lines[0]?.match(/[　\s]([^\s　]+學案)/);
+  if (headerMatch) return headerMatch[1];
   return "";
 }
 
@@ -204,7 +209,26 @@ async function callGemini(
       const raw = response.text ?? "";
       const cleaned = stripCodeFences(raw);
 
-      const parsed = JSON.parse(cleaned);
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(cleaned);
+      } catch {
+        // Try to salvage: find the outermost [ ... ] in the response
+        const bracketStart = cleaned.indexOf("[");
+        const bracketEnd = cleaned.lastIndexOf("]");
+        if (bracketStart !== -1 && bracketEnd > bracketStart) {
+          try {
+            parsed = JSON.parse(cleaned.substring(bracketStart, bracketEnd + 1));
+          } catch {
+            console.error(`    ✗ ${label}: JSON parse failed. First 200 chars: ${cleaned.substring(0, 200)}`);
+            throw new Error("JSON parse error");
+          }
+        } else {
+          console.error(`    ✗ ${label}: No JSON array found. First 200 chars: ${cleaned.substring(0, 200)}`);
+          throw new Error("JSON parse error");
+        }
+      }
+
       if (!Array.isArray(parsed)) {
         console.error(`    ✗ ${label}: Response is not an array`);
         return [];
@@ -212,11 +236,7 @@ async function callGemini(
       return parsed;
     } catch (err: any) {
       const msg = err?.message ?? String(err);
-      if (msg.includes("JSON")) {
-        console.error(`    ✗ ${label}: JSON parse error on attempt ${attempt}`);
-      } else {
-        console.error(`    ✗ ${label}: Attempt ${attempt} failed: ${msg.substring(0, 100)}`);
-      }
+      console.error(`    ✗ ${label}: Attempt ${attempt} failed: ${msg.substring(0, 120)}`);
       if (attempt === MAX_RETRIES) {
         console.error(`    ✗ ${label}: All retries exhausted`);
         return [];
@@ -264,7 +284,7 @@ async function main() {
     );
 
     const text = readFileSync(join(DATA_DIR, filename), "utf-8");
-    const xueanName = extractXueanName(text.split("\n")[0] ?? "");
+    const xueanName = extractXueanName(text);
     const chunks = splitIntoChunks(text);
 
     console.log(`  Split into ${chunks.length} section(s), xuean: ${xueanName}`);
@@ -284,6 +304,8 @@ async function main() {
 
       console.log(`  [${c + 1}/${chunks.length}] ${sectionLabel} (${chunkSize} chars)...`);
 
+      // If chunk is very large, process as-is but with a note
+      // The 16384 maxOutputTokens and 120s timeout should handle up to ~20KB
       const prompt = buildChunkPrompt(xueanName, sectionLabel, chunk.body);
       const scholars = await callGemini(client, prompt, `v${volLabel}/${sectionLabel}`);
 
