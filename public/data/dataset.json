@@ -1,0 +1,49 @@
+{
+  "scholars": [
+    {"id":"v001-hu-yuan","name":"胡瑗","namePinyin":"Hu Yuan","courtesy":"翼之","title":"文昭","xueanId":"anding","volume":1,"section":"高平講友","text":"胡瑗，字翼之，泰州如人。七歲善屬文，十三通《五經》，即以聖賢自期許。","umap":[2.1,3.5,-1.2],"tsne":[1.8,2.9,-0.7]},
+    {"id":"v001-xu-ji","name":"徐積","namePinyin":"Xu Ji","courtesy":"仲車","title":"節孝","xueanId":"anding","volume":1,"section":"安定門人","text":"徐積，字仲車，山陽人。三歲而孤，事母至孝。","umap":[3.2,4.1,-0.8],"tsne":[2.5,3.2,-1.1]},
+    {"id":"v001-qian-gongfu","name":"錢公輔","namePinyin":"Qian Gongfu","courtesy":"君倚","title":"","xueanId":"anding","volume":1,"section":"安定門人","text":"錢公輔，字君倚，武進人。少從學于安定。中進士甲科。","umap":[2.8,3.8,-1.5],"tsne":[2.1,3.5,-0.9]},
+    {"id":"v002-sun-fu","name":"孫復","namePinyin":"Sun Fu","courtesy":"明復","title":"","xueanId":"taishan","volume":2,"section":"高平講友","text":"孫復，字明復，晉州平陽人。四舉開封府籍進士不第，退居泰山，學《春秋》。","umap":[-3.5,1.2,4.1],"tsne":[-2.8,0.9,3.5]},
+    {"id":"v002-shi-jie","name":"石介","namePinyin":"Shi Jie","courtesy":"","title":"","xueanId":"taishan","volume":2,"section":"高平講友","text":"石介，字守道，兗州奉符人。篤學有志，嘗作《慶曆聖德詩》。","umap":[-3.1,1.8,3.8],"tsne":[-2.5,1.2,3.2]},
+    {"id":"v009-shao-yong","name":"邵雍","namePinyin":"Shao Yong","courtesy":"堯夫","title":"","xueanId":"baiyuan","volume":9,"section":"","text":"邵雍，字堯夫，范陽人。少時自雄其才，慷慨欲樹功名。","umap":[8.2,-5.1,2.3],"tsne":[7.1,-4.5,1.8]},
+    {"id":"v011-zhou-dunyi","name":"周敦頤","namePinyin":"Zhou Dunyi","courtesy":"茂叔","title":"","xueanId":"lianxi","volume":11,"section":"","text":"周敦頤，字茂叔，道州營道人。以舅龍圖閣學士鄭向任，為分寧主簿。","umap":[-6.5,-3.2,7.8],"tsne":[-5.8,-2.9,6.5]},
+    {"id":"v013-cheng-hao","name":"程顥","namePinyin":"Cheng Hao","courtesy":"伯淳","title":"","xueanId":"mingdao","volume":13,"section":"","text":"程顥，字伯淳，河南人。資稟既異，而充養有道。","umap":[-1.2,-8.5,5.1],"tsne":[-0.8,-7.2,4.5]},
+    {"id":"v015-cheng-yi","name":"程頤","namePinyin":"Cheng Yi","courtesy":"正叔","title":"","xueanId":"yichuan","volume":15,"section":"","text":"程頤，字正叔，河南人。年十八，上書闕下，條陳時務。","umap":[-0.8,-7.9,4.8],"tsne":[-0.5,-6.8,4.1]},
+    {"id":"v017-zhang-zai","name":"張載","namePinyin":"Zhang Zai","courtesy":"子厚","title":"","xueanId":"hengqu","volume":17,"section":"","text":"張載，字子厚，長安人。少喜談兵，至欲結客取洮西之地。","umap":[5.5,-6.2,-3.1],"tsne":[4.8,-5.5,-2.5]},
+    {"id":"v048-zhu-xi","name":"朱熹","namePinyin":"Zhu Xi","courtesy":"元晦","title":"","xueanId":"huiweng","volume":48,"section":"","text":"朱熹，字元晦，一字仲晦，徽州婺源人。父松字喬年。","umap":[-4.2,-2.1,-8.5],"tsne":[-3.5,-1.8,-7.2]},
+    {"id":"v051-lu-zuqian","name":"呂祖謙","namePinyin":"Lu Zuqian","courtesy":"伯恭","title":"","xueanId":"donglai","volume":51,"section":"","text":"呂祖謙，字伯恭，婺州人。祖父好問、父大器，皆以學問名世。","umap":[-5.8,4.2,-6.1],"tsne":[-5.1,3.8,-5.5]}
+  ],
+  "xueanGroups": [
+    {"id":"anding","name":"安定學案","nameEn":"Anding","color":"#ff6b6b","scholarCount":3,"volumes":[1]},
+    {"id":"taishan","name":"泰山學案","nameEn":"Taishan","color":"#4ecdc4","scholarCount":2,"volumes":[2]},
+    {"id":"baiyuan","name":"百源學案","nameEn":"Baiyuan","color":"#ffe66d","scholarCount":1,"volumes":[9]},
+    {"id":"lianxi","name":"濂溪學案","nameEn":"Lianxi","color":"#a29bfe","scholarCount":1,"volumes":[11]},
+    {"id":"mingdao","name":"明道學案","nameEn":"Mingdao","color":"#fd79a8","scholarCount":1,"volumes":[13]},
+    {"id":"yichuan","name":"伊川學案","nameEn":"Yichuan","color":"#00b894","scholarCount":1,"volumes":[15]},
+    {"id":"hengqu","name":"橫渠學案","nameEn":"Hengqu","color":"#e17055","scholarCount":1,"volumes":[17]},
+    {"id":"huiweng","name":"晦翁學案","nameEn":"Huiweng","color":"#0984e3","scholarCount":1,"volumes":[48]},
+    {"id":"donglai","name":"東萊學案","nameEn":"Donglai","color":"#6c5ce7","scholarCount":1,"volumes":[51]}
+  ],
+  "dendrogram": {
+    "height":1.0,
+    "children":[
+      {"height":0.8,"children":[
+        {"height":0.5,"children":[
+          {"height":0.2,"children":[{"id":"v001-hu-yuan","height":0},{"id":"v001-xu-ji","height":0}]},
+          {"id":"v001-qian-gongfu","height":0}
+        ]},
+        {"height":0.4,"children":[{"id":"v002-sun-fu","height":0},{"id":"v002-shi-jie","height":0}]}
+      ]},
+      {"height":0.9,"children":[
+        {"height":0.7,"children":[
+          {"height":0.3,"children":[{"id":"v013-cheng-hao","height":0},{"id":"v015-cheng-yi","height":0}]},
+          {"height":0.5,"children":[
+            {"id":"v011-zhou-dunyi","height":0},
+            {"height":0.35,"children":[{"id":"v017-zhang-zai","height":0},{"id":"v009-shao-yong","height":0}]}
+          ]}
+        ]},
+        {"height":0.6,"children":[{"id":"v048-zhu-xi","height":0},{"id":"v051-lu-zuqian","height":0}]}
+      ]}
+    ]
+  }
+}
