@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useMemo, useCallback } from "react";
-import { useFrame, type ThreeEvent } from "@react-three/fiber";
+import { useRef, useMemo, useCallback, useEffect } from "react";
+import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Scholar, XueanGroup } from "@/types";
 
@@ -18,14 +18,8 @@ interface InstancedPointsProps {
   onClick: (scholar: Scholar) => void;
 }
 
-const BASE_SIZE = 0.35;
+const POINT_SIZE = 8;
 const LERP_SPEED = 4;
-
-const tempMatrix = new THREE.Matrix4();
-const tempColor = new THREE.Color();
-const tempPosition = new THREE.Vector3();
-const tempScale = new THREE.Vector3();
-const tempQuaternion = new THREE.Quaternion();
 
 export function InstancedPoints({
   scholars,
@@ -36,14 +30,17 @@ export function InstancedPoints({
   onHover,
   onClick,
 }: InstancedPointsProps) {
-  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const pointsRef = useRef<THREE.Points>(null);
   const hoveredIdRef = useRef<string | null>(null);
   const currentPositions = useRef<Float32Array | null>(null);
+  const raycaster = useRef(new THREE.Raycaster());
+  const pointer = useRef(new THREE.Vector2());
+  const { camera, gl } = useThree();
 
   const colorMap = useMemo(() => {
-    const map = new Map<string, string>();
+    const map = new Map<string, THREE.Color>();
     for (const group of xueanGroups) {
-      map.set(group.id, group.color);
+      map.set(group.id, new THREE.Color(group.color));
     }
     return map;
   }, [xueanGroups]);
@@ -59,30 +56,57 @@ export function InstancedPoints({
     return arr;
   }, [scholars, algorithm]);
 
-  const geometry = useMemo(() => new THREE.SphereGeometry(BASE_SIZE, 16, 12), []);
-  const material = useMemo(
-    () => new THREE.MeshBasicMaterial({ vertexColors: true }),
-    []
-  );
-  const dimColor = useMemo(() => new THREE.Color("#1a1a2e"), []);
-
-  // Initialize instance colors on mount / when scholars change
-  const initRef = useRef(false);
-
-  useFrame((_, delta) => {
-    const mesh = meshRef.current;
-    if (!mesh) return;
-
-    // Ensure instanceColor buffer exists by setting colors on first frame
-    if (!initRef.current) {
-      for (let i = 0; i < scholars.length; i++) {
-        const hex = colorMap.get(scholars[i].xueanId) ?? "#888888";
-        tempColor.set(hex);
-        mesh.setColorAt(i, tempColor);
-      }
-      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-      initRef.current = true;
+  const initialColors = useMemo(() => {
+    const arr = new Float32Array(scholars.length * 3);
+    const dimColor = new THREE.Color("#1a1a2e");
+    const tempColor = new THREE.Color();
+    for (let i = 0; i < scholars.length; i++) {
+      const scholar = scholars[i];
+      const baseColor = colorMap.get(scholar.xueanId);
+      tempColor.copy(baseColor ?? new THREE.Color("#888888"));
+      arr[i * 3] = tempColor.r;
+      arr[i * 3 + 1] = tempColor.g;
+      arr[i * 3 + 2] = tempColor.b;
     }
+    return arr;
+  }, [scholars, colorMap]);
+
+  const sizes = useMemo(
+    () => new Float32Array(scholars.length).fill(POINT_SIZE),
+    [scholars.length]
+  );
+
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(new Float32Array(targetPositions), 3)
+    );
+    geo.setAttribute(
+      "color",
+      new THREE.Float32BufferAttribute(new Float32Array(initialColors), 3)
+    );
+    geo.setAttribute(
+      "size",
+      new THREE.Float32BufferAttribute(new Float32Array(sizes), 1)
+    );
+    return geo;
+  }, [scholars.length]);
+
+  // Update colors when filter/selection changes
+  useFrame((_, delta) => {
+    const points = pointsRef.current;
+    if (!points) return;
+
+    const posAttr = points.geometry.getAttribute(
+      "position"
+    ) as THREE.BufferAttribute;
+    const colorAttr = points.geometry.getAttribute(
+      "color"
+    ) as THREE.BufferAttribute;
+    const sizeAttr = points.geometry.getAttribute(
+      "size"
+    ) as THREE.BufferAttribute;
 
     if (!currentPositions.current) {
       currentPositions.current = new Float32Array(targetPositions);
@@ -90,94 +114,121 @@ export function InstancedPoints({
 
     const cur = currentPositions.current;
     const t = Math.min(1, delta * LERP_SPEED);
+    const dimColor = new THREE.Color("#1a1a2e");
+    const tempColor = new THREE.Color();
 
     for (let i = 0; i < scholars.length; i++) {
       const i3 = i * 3;
+      const scholar = scholars[i];
 
-      // Lerp position toward target
+      // Lerp positions
       cur[i3] += (targetPositions[i3] - cur[i3]) * t;
       cur[i3 + 1] += (targetPositions[i3 + 1] - cur[i3 + 1]) * t;
       cur[i3 + 2] += (targetPositions[i3 + 2] - cur[i3 + 2]) * t;
 
-      const scholar = scholars[i];
+      posAttr.setXYZ(i, cur[i3], cur[i3 + 1], cur[i3 + 2]);
+
+      // Colors
       const isHidden = hiddenIds.has(scholar.xueanId);
       const isHovered = hoveredIdRef.current === scholar.id;
       const isSelected = selectedId === scholar.id;
 
-      // Determine scale
-      let scale = 1;
-      if (isSelected) scale = 1.5;
-      else if (isHovered) scale = 1.2;
-
-      tempPosition.set(cur[i3], cur[i3 + 1], cur[i3 + 2]);
-      tempScale.setScalar(scale);
-      tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
-      mesh.setMatrixAt(i, tempMatrix);
-
-      // Color — full brightness for visible, dimmed for hidden
-      const hex = colorMap.get(scholar.xueanId) ?? "#888888";
-      tempColor.set(hex);
+      const baseColor = colorMap.get(scholar.xueanId);
+      tempColor.copy(baseColor ?? new THREE.Color("#888888"));
 
       if (isHidden) {
         tempColor.lerp(dimColor, 0.85);
       }
 
-      mesh.setColorAt(i, tempColor);
+      colorAttr.setXYZ(i, tempColor.r, tempColor.g, tempColor.b);
+
+      // Sizes
+      let size = POINT_SIZE;
+      if (isSelected) size = POINT_SIZE * 1.8;
+      else if (isHovered) size = POINT_SIZE * 1.4;
+      else if (isHidden) size = POINT_SIZE * 0.5;
+
+      sizeAttr.setX(i, size);
     }
 
-    mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    posAttr.needsUpdate = true;
+    colorAttr.needsUpdate = true;
+    sizeAttr.needsUpdate = true;
   });
 
-  const handlePointerOver = useCallback(
-    (e: ThreeEvent<PointerEvent>) => {
-      e.stopPropagation();
-      const idx = e.instanceId;
-      if (idx === undefined || idx < 0 || idx >= scholars.length) return;
+  // Raycasting for hover/click
+  useEffect(() => {
+    const canvas = gl.domElement;
 
-      const scholar = scholars[idx];
-      hoveredIdRef.current = scholar.id;
+    raycaster.current.params.Points = { threshold: 0.5 };
 
-      const coords = currentPositions.current;
-      if (coords) {
-        onHover(scholar, [
-          coords[idx * 3],
-          coords[idx * 3 + 1],
-          coords[idx * 3 + 2],
-        ]);
+    const handlePointerMove = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      pointer.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.current.setFromCamera(pointer.current, camera);
+      const points = pointsRef.current;
+      if (!points) return;
+
+      const intersects = raycaster.current.intersectObject(points);
+      if (intersects.length > 0 && intersects[0].index !== undefined) {
+        const idx = intersects[0].index;
+        const scholar = scholars[idx];
+        if (hoveredIdRef.current !== scholar.id) {
+          hoveredIdRef.current = scholar.id;
+          const pos = currentPositions.current;
+          if (pos) {
+            onHover(scholar, [
+              pos[idx * 3],
+              pos[idx * 3 + 1],
+              pos[idx * 3 + 2],
+            ]);
+          } else {
+            onHover(scholar, scholar[algorithm]);
+          }
+        }
       } else {
-        onHover(scholar, scholar[algorithm]);
+        if (hoveredIdRef.current !== null) {
+          hoveredIdRef.current = null;
+          onHover(null);
+        }
       }
-    },
-    [scholars, algorithm, onHover]
-  );
+    };
 
-  const handlePointerOut = useCallback(
-    (e: ThreeEvent<PointerEvent>) => {
-      e.stopPropagation();
-      hoveredIdRef.current = null;
-      onHover(null);
-    },
-    [onHover]
-  );
+    const handleClick = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      pointer.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-  const handleClick = useCallback(
-    (e: ThreeEvent<MouseEvent>) => {
-      e.stopPropagation();
-      const idx = e.instanceId;
-      if (idx === undefined || idx < 0 || idx >= scholars.length) return;
-      onClick(scholars[idx]);
-    },
-    [scholars, onClick]
-  );
+      raycaster.current.setFromCamera(pointer.current, camera);
+      const points = pointsRef.current;
+      if (!points) return;
+
+      const intersects = raycaster.current.intersectObject(points);
+      if (intersects.length > 0 && intersects[0].index !== undefined) {
+        onClick(scholars[intersects[0].index]);
+      }
+    };
+
+    canvas.addEventListener("pointermove", handlePointerMove);
+    canvas.addEventListener("click", handleClick);
+
+    return () => {
+      canvas.removeEventListener("pointermove", handlePointerMove);
+      canvas.removeEventListener("click", handleClick);
+    };
+  }, [gl, camera, scholars, algorithm, onHover, onClick]);
 
   return (
-    <instancedMesh
-      ref={meshRef}
-      args={[geometry, material, scholars.length]}
-      onPointerOver={handlePointerOver}
-      onPointerOut={handlePointerOut}
-      onClick={handleClick}
-    />
+    <points ref={pointsRef} geometry={geometry}>
+      <pointsMaterial
+        vertexColors
+        size={POINT_SIZE}
+        sizeAttenuation={false}
+        transparent
+        opacity={1}
+      />
+    </points>
   );
 }

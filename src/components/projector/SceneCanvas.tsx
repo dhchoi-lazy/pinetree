@@ -56,8 +56,9 @@ export function SceneCanvas({
         camera={{ position: [0, 0, 50], fov: 60 }}
         style={{ background: "#0a0a0f" }}
       >
-        <ambientLight intensity={0.6} />
-        <pointLight position={[50, 50, 50]} intensity={0.8} />
+        <ambientLight intensity={1.0} />
+        <pointLight position={[50, 50, 50]} intensity={1.5} />
+        <pointLight position={[-50, -50, -50]} intensity={0.5} />
 
         <InstancedPoints
           scholars={scholars}
