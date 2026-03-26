@@ -264,7 +264,10 @@ async function main() {
   );
 
   const client = new OpenAI({ baseURL: LITELLM_URL, apiKey: LITELLM_KEY });
+  const BATCH_SIZE = 5; // Process 5 volumes concurrently
 
+  // Collect volumes that need processing
+  const toProcess: { filename: string; volNum: number; volLabel: string; idx: number }[] = [];
   for (let i = 0; i < volumeFiles.length; i++) {
     const filename = volumeFiles[i];
     const volNum = volumeNumber(filename);
@@ -272,21 +275,26 @@ async function main() {
     const intermediateFile = join(OUTPUT_DIR, `scholars-v${volLabel}.json`);
 
     if (existsSync(intermediateFile)) {
-      console.log(
-        `[${i + 1}/${volumeFiles.length}] Volume ${volLabel} — cached, skipping`
-      );
-      continue;
+      console.log(`[${i + 1}/${volumeFiles.length}] Volume ${volLabel} — cached`);
+    } else {
+      toProcess.push({ filename, volNum, volLabel, idx: i });
     }
+  }
 
-    console.log(
-      `[${i + 1}/${volumeFiles.length}] Processing volume ${volLabel} (${filename})...`
-    );
+  console.log(`\n${toProcess.length} volumes to process, ${volumeFiles.length - toProcess.length} cached\n`);
+
+  // Process a single volume (all its chunks sequentially)
+  async function processVolume(entry: typeof toProcess[0]): Promise<void> {
+    const { filename, volNum, volLabel, idx } = entry;
+    const intermediateFile = join(OUTPUT_DIR, `scholars-v${volLabel}.json`);
+
+    console.log(`[${idx + 1}/${volumeFiles.length}] Processing volume ${volLabel} (${filename})...`);
 
     const text = readFileSync(join(DATA_DIR, filename), "utf-8");
     const xueanName = extractXueanName(text);
     const chunks = splitIntoChunks(text);
 
-    console.log(`  Split into ${chunks.length} section(s), xuean: ${xueanName}`);
+    console.log(`  v${volLabel}: ${chunks.length} section(s), xuean: ${xueanName}`);
 
     const volumeScholars: ScholarRaw[] = [];
 
@@ -295,41 +303,31 @@ async function main() {
       const sectionLabel = chunk.section || "(main)";
       const chunkSize = chunk.body.length;
 
-      // Skip very small chunks (likely just cross-references)
-      if (chunkSize < 50) {
-        console.log(`  [${c + 1}/${chunks.length}] ${sectionLabel} — too small (${chunkSize} chars), skipping`);
-        continue;
-      }
+      if (chunkSize < 50) continue;
 
-      console.log(`  [${c + 1}/${chunks.length}] ${sectionLabel} (${chunkSize} chars)...`);
-
-      // If chunk is very large, process as-is but with a note
-      // The 16384 maxOutputTokens and 120s timeout should handle up to ~20KB
       const prompt = buildChunkPrompt(xueanName, sectionLabel, chunk.body);
-      const scholars = await callLLM(client, prompt,`v${volLabel}/${sectionLabel}`);
+      const scholars = await callLLM(client, prompt, `v${volLabel}/${sectionLabel}`);
 
       if (scholars.length > 0) {
-        console.log(`    → ${scholars.length} scholar(s)`);
+        console.log(`  v${volLabel}/${sectionLabel}: ${scholars.length} scholar(s)`);
         volumeScholars.push(...scholars);
-      }
-
-      // Small delay between chunks
-      if (c < chunks.length - 1) {
-        await sleep(500);
       }
     }
 
     if (volumeScholars.length > 0) {
-      console.log(`  Total: ${volumeScholars.length} scholar(s) for volume ${volLabel}`);
+      console.log(`  v${volLabel} DONE: ${volumeScholars.length} scholar(s)`);
       writeFileSync(intermediateFile, JSON.stringify(volumeScholars, null, 2), "utf-8");
     } else {
-      console.log(`  ⚠ No scholars extracted for volume ${volLabel}`);
+      console.log(`  v${volLabel} ⚠ No scholars extracted`);
     }
+  }
 
-    // Rate limit between volumes
-    if (i < volumeFiles.length - 1) {
-      await sleep(1000);
-    }
+  // Process in batches of BATCH_SIZE
+  for (let b = 0; b < toProcess.length; b += BATCH_SIZE) {
+    const batch = toProcess.slice(b, b + BATCH_SIZE);
+    console.log(`\n--- Batch ${Math.floor(b / BATCH_SIZE) + 1}: volumes ${batch.map(e => e.volLabel).join(", ")} ---\n`);
+    await Promise.all(batch.map(processVolume));
+    await sleep(1000);
   }
 
   // -------------------------------------------------------------------------
