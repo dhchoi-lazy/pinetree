@@ -26,7 +26,7 @@ interface Checkpoint {
 // Config
 // ---------------------------------------------------------------------------
 
-const EMBEDDING_MODEL = "gemini-embedding-exp-03-07";
+const EMBEDDING_MODEL = "gemini-embedding-2-preview";
 const BATCH_SIZE = 20;
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
