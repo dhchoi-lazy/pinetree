@@ -201,8 +201,8 @@ async function callGemini(
         contents: prompt,
         config: {
           temperature: 0.1,
-          maxOutputTokens: 16384,
-          httpOptions: { timeout: 120_000 },
+          maxOutputTokens: 65536,
+          httpOptions: { timeout: 300_000 },
         },
       });
 
