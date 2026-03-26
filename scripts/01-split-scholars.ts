@@ -264,7 +264,7 @@ async function main() {
   );
 
   const client = new OpenAI({ baseURL: LITELLM_URL, apiKey: LITELLM_KEY });
-  const BATCH_SIZE = 5; // Process 5 volumes concurrently
+  const BATCH_SIZE = 20; // Process 20 volumes concurrently
 
   // Collect volumes that need processing
   const toProcess: { filename: string; volNum: number; volLabel: string; idx: number }[] = [];
